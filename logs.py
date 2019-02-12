@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import psycopg2
+from datetime import datetime
 
 db = psycopg2.connect("dbname=news")
 
@@ -27,6 +28,32 @@ create or replace view articles_visits as
     on articles.slug=logsformatted.slug
     group by articles.id);'''
 c.execute(createViewArticlesVisit)
+
+# Create View to check request status by date
+createViewRequestStatus = '''
+create or replace view requests_status as
+    (select count(id) as num,
+    status,
+    time::timestamp::date as date
+    from log
+    group by status, date
+    order by date);
+'''
+c.execute(createViewRequestStatus)
+
+# Create View to get error percentage by date
+createViewErrorPercentage = '''
+create or replace view error_percentage as
+    (select A.date,
+            100*B.num/sum(A.num) as error
+            from requests_status A
+            JOIN requests_status B
+            on A.date=B.date
+            where B.status != '200 OK'
+            group by A.date, B.num
+            order by error desc);
+'''
+c.execute(createViewErrorPercentage)
 
 # 1. What are the most popular three articles of all time?
 # Which articles have been accessed the most?
@@ -69,5 +96,15 @@ for row in rows:
 # 3. On which days did more than 1% of requests lead to errors?
 # The log table includes a column status that indicates the HTTP
 # status code that the news site sent to the user's browser.
+
+query3 = "select date, error from error_percentage where error>1;"
+
+c.execute(query3)
+rows = c.fetchall()
+
+print "\n3. Which days did more than 1% of requests lead to errors \n"
+for row in rows:
+    print " * {0} - {1}% errors".format(datetime.strftime(row[0],'%b %d, %Y'), round(row[1],2))
+
 
 db.close()
