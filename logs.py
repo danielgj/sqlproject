@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
 
-# 1. What are the most popular three articles of all time? 
-# Which articles have been accessed the most? 
-# Present this information as a sorted list with the most popular article at the top.
-
 # 2. Who are the most popular article authors of all time? 
 # That is, when you sum up all of the articles each author has written, which authors get the most page views? 
 # Present this as a sorted list with the most popular author at the top.
@@ -17,12 +13,24 @@ import psycopg2
 db = psycopg2.connect("dbname=news")
 
 c = db.cursor()
-query = "select * from articles;"
-c.execute(query)
+
+# Create Log Formatted View
+createViewLogs = "create or replace view logsformatted as (select id, REPLACE(path,'/article/','') as slug, time from log where status='200 OK');"
+c.execute(createViewLogs)
+
+# 1. What are the most popular three articles of all time? 
+# Which articles have been accessed the most? 
+# Present this information as a sorted list with the most popular article at the top.
+
+#query = "select articles.id as articleId, articles.slug, articles.title, articles.author, count(logsformatted.id) as visitsNumber from articles left join logsformatted on articles.slug=logsformatted.slug group by articles.id;"
+query1 = "select articles.title, count(logsformatted.id) as visitsNumber from articles left join logsformatted on articles.slug=logsformatted.slug group by articles.id order by visitsNumber desc limit 3;"
+c.execute(query1)
 rows = c.fetchall()
 
-# First, what data structure did we get?
-print "Row data:"
-print rows
+print "1. Three most popular articles of all time \n"
+for row in rows:
+  print " * \"{0}\" - {1} visits".format(row[0], row[1])
+
+db.close()
 
 
