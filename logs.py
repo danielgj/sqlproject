@@ -104,7 +104,8 @@ rows = c.fetchall()
 
 print "\n3. Which days did more than 1% of requests lead to errors \n"
 for row in rows:
-    print " * {0} - {1}% errors".format(datetime.strftime(row[0],'%b %d, %Y'), round(row[1],2))
+    dateFormated = datetime.strftime(row[0], '%b %d, %Y')
+    print " * {0} - {1}% errors".format(dateFormated, round(row[1], 2))
 
 
 db.close()
